@@ -35,18 +35,18 @@ def find_face(image):
         # image = image[faces[1]:faces[1] + faces[3], faces[0]:faces[0] + faces[2], :]
     return face
 
-def box_face(image,window,color=(0, 255, 0)):
+def box_face(image,window,color=(0, 0, 255)):
     box = []
     # convert window to four box point
     box.append([window[0],window[1]])
     box.append([window[0]+window[2], window[1]])
-    box.append([window[0]+window[2], window[1]]+window[3])
-    box.append([window[0], window[1]]+window[3])
+    box.append([window[0]+window[2], window[1]+window[3]])
+    box.append([window[0], window[1]+window[3]])
     box = np.intp(box)
     cv2.drawContours(image, [box], 0, color, 2)
     return image
 
-def remove_face(image,window,relax_border = [30,30]):
+def remove_face(image,window,relax_border = [25,40]):
     """
     replace face with average color from image
     :param image:

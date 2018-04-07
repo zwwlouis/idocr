@@ -83,10 +83,14 @@ def detect(img, debug=False):
     # 1.  转化成灰度图
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    #    window = fd.find_face(img)
-    # if window is not None:
-    #     gray = fd.remove_face(gray,window)
-    #     fd.box_face(img,window)
+    window = fd.find_face(img)
+    if window is not None:
+        gray = fd.remove_face(gray,window)
+        fd.box_face(img,window)
+    if debug:
+        cv2.imshow("gray",gray)
+        cv2.imshow("color",img)
+        cv2.waitKey()
 
     # 2. 形态学变换的预处理，得到可以查找矩形的图片
     dilation = preprocess(gray,debug)
