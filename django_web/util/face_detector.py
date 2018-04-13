@@ -35,7 +35,7 @@ def find_face(image):
         # image = image[faces[1]:faces[1] + faces[3], faces[0]:faces[0] + faces[2], :]
     return face
 
-def box_face(image,window,color=(0, 0, 255)):
+def draw_face_box(image, window, color=(0, 0, 255)):
     box = []
     # convert window to four box point
     box.append([window[0],window[1]])
