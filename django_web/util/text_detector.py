@@ -24,12 +24,12 @@ def img_binary(gray):
     return binary
 
 
-def get_card_area(img, debug=False, save_path=RESOURCE):
+def get_card_area(img, debug=False, save_folder="result"):
     """
-    剪裁出身份证区域
+    剪裁出身份证文字区域
     :param img:
     :param debug:
-    :param save_path:
+    :param save_folder:
     :return:
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -54,15 +54,15 @@ def get_card_area(img, debug=False, save_path=RESOURCE):
     cv2.drawContours(img, [box], 0, (0, 255, 0), 2)
     if debug:
         # 存储中间图片
-        iu.write_img(binary, save_path, "1_binary.png")
-        iu.write_img(dilation, save_path, "2_dilation.png")
-        iu.write_img(erosion, save_path, "3_erosion.png")
-        iu.write_img(dilation2, save_path, "4_dilation2.png")
-        iu.write_img(img, save_path, "contour.jpg")
-    cv2.waitKey()
+        iu.write_middle_result(binary, "1_binary.png", save_folder)
+        iu.write_middle_result(dilation, "2_dilation.png", save_folder)
+        iu.write_middle_result(erosion, "3_erosion.png", save_folder)
+        iu.write_middle_result(dilation2, "4_dilation2.png", save_folder)
+        iu.write_middle_result(img, "contour.jpg", save_folder)
+        cv2.waitKey()
 
 
-def preprocess(gray, debug, save_path):
+def preprocess(gray, debug, save_folder):
     # 1. Sobel算子，x方向求梯度
     sobel = cv2.Sobel(gray, cv2.CV_8U, 1, 0, ksize=3)
     # 2. 二值化
@@ -83,10 +83,10 @@ def preprocess(gray, debug, save_path):
     dilation2 = cv2.dilate(erosion, element2, iterations=3)
     if debug:
         # 7. 存储中间图片
-        iu.write_img(binary, save_path, "1_binary.png")
-        iu.write_img(dilation, save_path, "2_dilation.png")
-        iu.write_img(erosion, save_path, "3_erosion.png")
-        iu.write_img(dilation2, save_path, "4_dilation2.png")
+        iu.write_middle_result(binary, "1_binary.png", save_folder)
+        iu.write_middle_result(dilation,  "2_dilation.png", save_folder)
+        iu.write_middle_result(erosion, "3_erosion.png", save_folder)
+        iu.write_middle_result(dilation2, "4_dilation2.png", save_folder)
     return dilation2
 
 
@@ -162,7 +162,7 @@ def find_max_region(img):
     return box
 
 
-def detect(img, debug=False, save_path=RESOURCE):
+def detect(img, debug=False, save_folder="result"):
     # 1.  转化成灰度图
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -174,14 +174,14 @@ def detect(img, debug=False, save_path=RESOURCE):
 
     # TODO 暂时松弛边界写为固定，之后可以先扣取身份证区域，根据身份证大小决定边界大小，或者将身份证区域处理成统一大小
     shape = gray.shape
-    gray = fd.remove_face(gray, face_window, relax_border=np.intp([shape[0]/15, shape[1]/12]))
+    gray = fd.remove_face(gray, face_window, relax_border=np.intp([shape[0] / 15, shape[1] / 12]))
     fd.draw_face_box(img, face_window)
 
     # 2. 形态学变换的预处理，得到可以查找矩形的图片
-    dilation = preprocess(gray, debug, save_path)
+    dilation = preprocess(gray, debug, save_folder)
 
     # 3. 查找和筛选文字区域
-    region = findTextRegion(dilation, debug, save_path)
+    region = findTextRegion(dilation, debug, save_folder)
     # 识别文字
     result_text = ""
 
@@ -193,7 +193,7 @@ def detect(img, debug=False, save_path=RESOURCE):
         x_min, y_min = np.min(box, 0)
         x_max, y_max = np.max(box, 0)
         text_window = [x_min, y_min, x_max - x_min, y_max - y_min]
-        if not region_filter(img,text_window,face_window):
+        if not region_filter(img, text_window, face_window):
             continue
         image_part, text = tr.ocr_result(img, text_window)
         result_text = text + "\n" + result_text
@@ -207,7 +207,7 @@ def detect(img, debug=False, save_path=RESOURCE):
         cv2.drawContours(img, [box], 0, (0, 255, 0), 2)
         if debug:
             # 带轮廓的图片
-            iu.write_img(img, save_path, "contours.png")
+            iu.write_middle_result(img, "contours.png", save_folder)
             cv2.waitKey(0)
     return img, image_array, text_array
 
@@ -221,17 +221,17 @@ def region_filter(img, text_window, face_window):
     :return:
     """
     # 文字框的中点应当位于头像左侧
-    if (text_window[0] + text_window[2]/2) > face_window[0]:
+    if (text_window[0] + text_window[2] / 2) > face_window[0]:
         return False
     shape = img.shape
     # 文字框的高度应当小于总高度的1/3
-    if text_window[3] > shape[0]/3:
+    if text_window[3] > shape[0] / 3:
         return False
     return True
 
 
 def get_tess_time():
-    return tr.time_cvt,tr.time_tess
+    return tr.time_cvt, tr.time_tess
 
 
 if __name__ == '__main__':

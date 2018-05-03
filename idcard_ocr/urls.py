@@ -14,7 +14,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
+from django_web import ocr_server
 
 urlpatterns = [
-    path('admin/', ),
+    path('ocr/v1/idcard', ocr_server.idcard_ocr),
 ]

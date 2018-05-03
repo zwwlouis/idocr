@@ -3,6 +3,7 @@ import cv2
 from idcard_ocr.settings import BASE_DIR
 
 RESOURCE = os.path.join(BASE_DIR, "django_web/resource")
+TEMP = os.path.join(BASE_DIR, "django_web/temp")
 
 
 def get_imgs_from_path(file_dir):
@@ -11,20 +12,31 @@ def get_imgs_from_path(file_dir):
     return os.listdir(file_dir)
 
 
-def read_img(file_path, width=400):
+def read_img(file_path, width=1000,flags=1):
     if not os.path.exists(file_path):
         return None
-    image = cv2.imread(file_path)
+    image = cv2.imread(file_path,flags=flags)
     shape = image.shape
     h_after_resize = int(shape[0] / shape[1] * width)
     image = cv2.resize(image, (width, h_after_resize))
     return image
 
+def get_mask(file_name,flags = 1):
+    file_path = os.path.join(RESOURCE,"mask",file_name)
+    image = cv2.imread(file_path,flags = flags)
+    return image;
 
-def write_img(img, file_path,file_name):
+def write_img(img, file_path, file_name):
     if not os.path.exists(file_path):
         os.makedirs(file_path)
-    cv2.imwrite(os.path.join(file_path,file_name), img)
+    cv2.imwrite(os.path.join(file_path, file_name), img)
+
+
+def write_middle_result(img, file_name, folder="result"):
+    result_file_path = os.path.join(TEMP, folder)
+    if not os.path.exists(result_file_path):
+        os.makedirs(result_file_path)
+    cv2.imwrite(os.path.join(result_file_path, file_name), img)
 
 
 if __name__ == '__main__':
