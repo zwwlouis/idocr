@@ -16,6 +16,12 @@ print(x, pixel_x)
 # debug模式下保存图片处理的中间结果
 DEBUG = False
 
+name_mask = cv2.UMat(iu.get_mask('name_mask_%s.jpg' % pixel_x, 0))
+nation_mask = cv2.UMat(iu.get_mask('nation_mask_%s.jpg' % pixel_x, 0))
+sex_mask = cv2.UMat(iu.get_mask('sex_mask_%s.jpg' % pixel_x, 0))
+birth_mask = cv2.UMat(iu.get_mask('birth_mask_%s.jpg' % pixel_x, 0))
+address_mask = cv2.UMat(iu.get_mask('address_mask_%s.jpg' % pixel_x, 0))
+idnum_mask = cv2.UMat(iu.get_mask('idnum_mask_%s.jpg' % pixel_x, 0))
 
 def idcardocr(img):
     # generate_mask(x)
@@ -31,25 +37,12 @@ def idcardocr(img):
     text_dict['name'] = get_name(name_pic)
     # print result_dict['name']
 
-    sex_pic = find_sex(img_data_gray, img_org)
-    # showimg(sex_pic)
-    # print 'sex'
-    text_dict['sex'] = get_sex(sex_pic)
-    # print result_dict['sex']
 
     nation_pic = find_nation(img_data_gray, img_org)
     # showimg(nation_pic)
     # print 'nation'
     text_dict['nation'] = get_nation(nation_pic)
     # print result_dict['nation']
-
-    year_pic, month_pic, day_pic = find_birth(img_data_gray, img_org)
-    # showimg(birth_pic)
-    # print 'birth'
-    date = get_birth(year_pic, month_pic, day_pic)
-    # print year,month,day
-    text_dict['birth'] = date
-    # print result_dict['birth']
 
 
     address_pic = find_address(img_data_gray, img_org)
@@ -62,6 +55,29 @@ def idcardocr(img):
     # showimg(idnum_pic)
     # print 'idnum'
     text_dict['idnum'] = get_idnum(idnum_pic)
+
+    idnum = text_dict['idnum']["text"]
+    # TODO idcard_util 检测身份证号的有效性
+    if len(idnum) == 18:
+        birth = idnum[6:14]
+        text_dict['birth'] = dict(label="birth", text=birth, location={})
+        sex_num = int(idnum[16])
+        if sex_num%2 == 0:
+            sex = "女"
+        else:
+            sex = "男"
+        text_dict['sex'] = dict(label="sex", text=sex, location={})
+
+    else:
+        year_pic, month_pic, day_pic = find_birth(img_data_gray, img_org)
+        text_dict['birth'] = get_birth(year_pic, month_pic, day_pic)
+
+        sex_pic = find_sex(img_data_gray, img_org)
+        # showimg(sex_pic)
+        # print 'sex'
+        text_dict['sex'] = get_sex(sex_pic)
+        # print result_dict['sex']
+
 
     result_dict['textCount'] = len(text_dict)
     return result_dict
@@ -135,7 +151,7 @@ def img_resize_gray(imgorg):
 
 
 def find_name(crop_gray, crop_org):
-    template = cv2.UMat(iu.get_mask('name_mask_%s.jpg' % pixel_x, 0))
+    template = name_mask
     # showimg(crop_org)
     w, h = cv2.UMat.get(template).shape[::-1]
     res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
@@ -150,7 +166,7 @@ def find_name(crop_gray, crop_org):
 
 
 def find_sex(crop_gray, crop_org):
-    template = cv2.UMat(iu.get_mask('sex_mask_%s.jpg' % pixel_x, 0))
+    template = sex_mask
     # showimg(template)
     w, h = cv2.UMat.get(template).shape[::-1]
     res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
@@ -164,7 +180,7 @@ def find_sex(crop_gray, crop_org):
 
 
 def find_nation(crop_gray, crop_org):
-    template = cv2.UMat(iu.get_mask('nation_mask_%s.jpg' % pixel_x, 0))
+    template = nation_mask
     # showimg(template)
     w, h = cv2.UMat.get(template).shape[::-1]
     res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
@@ -176,9 +192,8 @@ def find_nation(crop_gray, crop_org):
     # showimg(crop_gray)
     return cv2.UMat(result)
 
-
 def find_birth(crop_gray, crop_org):
-    template = cv2.UMat(iu.get_mask('birth_mask_%s.jpg' % pixel_x, 0))
+    template = birth_mask
     w, h = cv2.UMat.get(template).shape[::-1]
     res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -226,7 +241,7 @@ def find_birth(crop_gray, crop_org):
 
 
 def find_address(crop_gray, crop_org):
-    template = cv2.UMat(iu.get_mask('address_mask_%s.jpg' % pixel_x, 0))
+    template = address_mask
     w, h = cv2.UMat.get(template).shape[::-1]
     # t1 = round(time.time()*1000)
     res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
@@ -241,7 +256,7 @@ def find_address(crop_gray, crop_org):
 
 
 def find_idnum(crop_gray, crop_org):
-    template = cv2.UMat(iu.get_mask('idnum_mask_%s.jpg' % pixel_x, 0))
+    template = idnum_mask
     w, h = cv2.UMat.get(template).shape[::-1]
     res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -353,10 +368,14 @@ def get_birth(year, month, day):
     year = pytesseract.image_to_string(year_red, lang='idnum',config='-c tessedit_char_whitelist=0123456789 -psm 13').replace(" ", "")
     month = pytesseract.image_to_string(month_red, lang='idnum',
                                        config='-c tessedit_char_whitelist=0123456789 -psm 13').replace(" ", "")
-    day =  pytesseract.image_to_string(day_red, lang='idnum',
+    while len(month) < 2:
+        month = "0"+month
+    day = pytesseract.image_to_string(day_red, lang='idnum',
                                        config='-c tessedit_char_whitelist=0123456789 -psm 13').replace(" ", "")
-
-    return year+month+day
+    while len(day) < 2:
+        month = "0"+day
+    birth = year+month+day
+    return dict(label="birth", text=birth, location={})
 
 
 def get_address(img):
@@ -369,8 +388,9 @@ def get_address(img):
     red = img_resize(red, 300)
     # iu.write_middle_result(red,'address_red.png')
     img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
-    return punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 3').replace(" ", ""))
-
+    address =  punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 3').replace(" ", ""))
+    ocr_text = dict(label="address", text=address, location={})
+    return ocr_text
 
 def get_idnum(img):
     #    cv2.imshow("method3", img)
@@ -382,8 +402,9 @@ def get_idnum(img):
     red = img_resize(red, 150)
     # iu.write_middle_result('idnum_red.png', red)
     img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
-    return pytesseract.image_to_string(img, lang='idnum', config='-psm 13').replace(" ", "")
-
+    idnum = pytesseract.image_to_string(img, lang='idnum', config='-psm 13').replace(" ", "")
+    ocr_text = dict(label="idnum", text=idnum, location={})
+    return ocr_text
 
 def punc_filter(str):
     temp = str
