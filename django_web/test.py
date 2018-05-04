@@ -94,17 +94,19 @@ def test_card_locater(offset=0,limit = 100):
             continue
         try:
             t1 = round(time.time() * 1000)
-            result, mid = locate_card.locate(file_path)
+            img_target = cv2.imread(file_path)
+            result, mid = locate_card.locate(img_target)
             image_array.append(mid)
-            text_array.append(file_name + "_mid")
+            text_array.append(file_name[0:5] + "_mid")
             image_array.append(result)
-            text_array.append(file_name + "_result")
+            text_array.append(file_name[0:5] + "_result")
 
             t2 = round(time.time() * 1000)
             print('time cost:%s ms' % (t2 - t1))
         except ServiceException as exp:
             print("识别出错 %s" % str(exp))
-    su.auto_subplt(image_array,col=2,funcs=[plt.imshow],params=[{"cmap":"gray"},{}],title=text_array)
+    su.auto_subplt(image_array,col=6,funcs=[plt.imshow],params=[{"cmap":"gray"},{}],title=text_array)
+    input()
 
 
 
@@ -113,5 +115,5 @@ if __name__ == '__main__':
     # group_test_detect()
     # time_cvt, time_tess = td.get_tess_time()
     # print("cvt time=%.3f   tess time=%.3f" % (time_cvt, time_tess))
-    test_card_locater(offset=8,limit=1)
+    test_card_locater(offset=0,limit=40)
     # test_card_locater(offset=0, limit=12)
