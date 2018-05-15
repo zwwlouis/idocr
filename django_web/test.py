@@ -84,6 +84,7 @@ def test_card_locater(offset=0,limit = 100):
     text_array = []
     locate_card = lc.LocateCard()
     i = -1
+    total_time = 0
     for file_name in files:
         i += 1
         if i >= (offset+limit) or i < offset:
@@ -102,9 +103,11 @@ def test_card_locater(offset=0,limit = 100):
             text_array.append(file_name[0:5] + "_result")
 
             t2 = round(time.time() * 1000)
+            total_time += t2-t1
             print('time cost:%s ms' % (t2 - t1))
         except ServiceException as exp:
             print("识别出错 %s" % str(exp))
+    print('total time cost:%s ms' % (total_time))
     su.auto_subplt(image_array,col=6,funcs=[plt.imshow],params=[{"cmap":"gray"},{}],title=text_array)
     input()
 

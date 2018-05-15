@@ -43,7 +43,15 @@ def idcard_ocr(request):
             card_file = request.FILES['image']
             image = Image.open(card_file)
             img_mat = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
+            time_used = time.time() - start
+            start += time_used
+            print("file load timeUsed = %d ms" % (int(time_used * 1000)))
+
             img_full, _ = locate_card.locate(img_mat)
+            time_used = time.time() - start
+            start += time_used
+            print("card location timeUsed = %d ms" % (int(time_used * 1000)))
+
             result_dict = idcardocr.idcardocr(img_full)
             time_used = time.time() - start
             logger.info("ocr timeUsed = %d ms"%(int(time_used*1000)))

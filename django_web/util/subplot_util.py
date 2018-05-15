@@ -23,8 +23,7 @@ def auto_subplt(imgs, col=2, funcs=[plt.imshow], params=[], title=[""]):
                 plt.subplot(row, col, num + 1)
                 param = params[j % param_num]
                 img = imgs[num]
-                img_mat = img.get()
-                funcs[j % func_num](img_mat, **param)
+                funcs[j % func_num](img, **param)
                 plt.title(title[num % title_num])
 
     plt.show()
