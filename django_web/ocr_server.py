@@ -21,6 +21,8 @@ logger = logging.getLogger('django_logger')
 
 @csrf_exempt
 def idcard_ocr(request):
+    start = time.time()
+    ori_time = start
     # 初始化返回对象
     response_data = dict(code=20001, message="", result=None)
     if request.method == 'POST':
@@ -38,8 +40,11 @@ def idcard_ocr(request):
         detect_direction = request.POST.get('direction')
         if detect_direction is None:
             detect_direction = False
+        time_used = time.time() - start
+        start += time_used
+        print("prehandle timeUsed = %d ms" % (int(time_used * 1000)))
+
         try:
-            start = time.time()
             card_file = request.FILES['image']
             image = Image.open(card_file)
             img_mat = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
@@ -53,8 +58,8 @@ def idcard_ocr(request):
             print("card location timeUsed = %d ms" % (int(time_used * 1000)))
 
             result_dict = idcardocr.idcardocr(img_full)
-            time_used = time.time() - start
-            logger.info("ocr timeUsed = %d ms"%(int(time_used*1000)))
+            time_used = time.time() - ori_time
+            print("total procession timeUsed = %d ms"%(int(time_used*1000)))
             response_data = dict(code=0, message="ok", result=result_dict)
         except (MultiValueDictKeyError, OSError) as error:
             logger.error("图片参数错误"+traceback.format_exc())

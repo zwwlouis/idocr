@@ -8,6 +8,7 @@ import re
 from multiprocessing import Pool, Queue, Lock, Process, freeze_support
 import time
 from django_web.util import img_util as iu
+from django_web.util import tesserocr_link as tl
 
 # pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe'
 
@@ -67,8 +68,8 @@ def idcardocr(img):
     # start += time_used
     # print("address timeUsed = %d ms" % (int(time_used * 1000)))
     #
-    idnum_pic = find_idnum(img_data_gray, img_org)
-    text_dict['idnum'] = get_idnum(idnum_pic)
+    # idnum_pic = find_idnum(img_data_gray, img_org)
+    # text_dict['idnum'] = get_idnum(idnum_pic)
 
     idnum = text_dict['idnum']["text"]
     # TODO idcard_util 检测身份证号的有效性
@@ -83,14 +84,15 @@ def idcardocr(img):
         text_dict['sex'] = dict(label="sex", text=sex, location={})
 
     else:
-        year_pic, month_pic, day_pic = find_birth(img_data_gray, img_org)
-        text_dict['birth'] = get_birth(year_pic, month_pic, day_pic)
-
-        sex_pic = find_sex(img_data_gray, img_org)
-        # showimg(sex_pic)
-        # print 'sex'
-        text_dict['sex'] = get_sex(sex_pic)
-        # print result_dict['sex']
+        pass
+        # year_pic, month_pic, day_pic = find_birth(img_data_gray, img_org)
+        # text_dict['birth'] = get_birth(year_pic, month_pic, day_pic)
+        #
+        # sex_pic = find_sex(img_data_gray, img_org)
+        # # showimg(sex_pic)
+        # # print 'sex'
+        # text_dict['sex'] = get_sex(sex_pic)
+        # # print result_dict['sex']
 
     result_dict['textCount'] = len(text_dict)
     return result_dict
@@ -128,8 +130,9 @@ def text_ocr(img, label, lang, config='-psm 3'):
     red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
     red = img_resize(red, 150)
     img = Image.fromarray(red.astype('uint8'))
-    idnum = pytesseract.image_to_string(img, lang=lang, config=config).replace(" ", "")
-    ocr_text = dict(label=label, text=idnum, location={})
+    # text = pytesseract.image_to_string(img, lang=lang, config=config).replace(" ", "")
+    text = tl.image_to_string(img,lang=lang).replace(" ", "").replace("\n","")
+    ocr_text = dict(label=label, text=text, location={})
     time_used = time.time() - start
     print("recognize %s timeUsed = %d ms" % (label, int(time_used * 1000)))
     return ocr_text
