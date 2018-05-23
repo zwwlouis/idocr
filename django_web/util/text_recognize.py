@@ -1,9 +1,9 @@
-import pytesseract
 import re
 from PIL import Image
 import cv2
 from numpy import array
 import time
+from django_web.tess_ocr import tess_link as tl
 
 time_tess = 0
 time_cvt = 0
@@ -33,7 +33,7 @@ def ocr_result(image, window):
     image_text = Image.fromarray(image_part_gray)
     time_cvt += time.time() - start
     start = time.time()
-    text = pytesseract.image_to_string(image_text, lang='chi_sim')
+    text = tl.image_to_string_exe(image_text, lang='chi_sim')
     text = txt_process(text)
     time_tess += time.time() - start
     return image_part, text

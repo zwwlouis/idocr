@@ -6,7 +6,7 @@ import os
 from django_web.util import face_detector as fd
 from django_web.util import img_util as iu
 from idcard_ocr.settings import BASE_DIR
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 from django_web.util import text_recognize as tr
 from django_web.model import *
 
@@ -84,7 +84,7 @@ def preprocess(gray, debug, save_folder):
     if debug:
         # 7. 存储中间图片
         iu.write_middle_result(binary, "1_binary.png", save_folder)
-        iu.write_middle_result(dilation,  "2_dilation.png", save_folder)
+        iu.write_middle_result(dilation, "2_dilation.png", save_folder)
         iu.write_middle_result(erosion, "3_erosion.png", save_folder)
         iu.write_middle_result(dilation2, "4_dilation2.png", save_folder)
     return dilation2

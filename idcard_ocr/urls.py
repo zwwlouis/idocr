@@ -16,6 +16,7 @@ Including another URLconf
 from django.urls import path
 from django_web import ocr_server
 
+
 urlpatterns = [
     path('ocr/v1/idcard', ocr_server.idcard_ocr),
 ]

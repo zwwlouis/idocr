@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 from PIL import Image
-import time
-import pytesseract
 import cv2
 import numpy as np
 import re
-from multiprocessing import Pool, Queue, Lock, Process, freeze_support
 import time
 from django_web.util import img_util as iu
-from django_web.util import tesserocr_link as tl
-
-# pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe'
-
+from django_web.tess_ocr import tess_link as tl
+import logging
+logger = logging.getLogger('django_logger')
 x = 1280.00 / 3840.00
 pixel_x = int(x * 3840)
 print(x, pixel_x)
@@ -119,7 +115,7 @@ def find_region(img_gray, img_rgb, template, shape, label=''):
     cv2.rectangle(img_gray, top_left, bottom_right, 255, 2)
     # showimg(result)
     time_used = time.time() - start
-    print("find %s timeUsed = %d ms" % (label,int(time_used * 1000)))
+    logger.info("find %s timeUsed = %d ms" % (label,int(time_used * 1000)))
     return result
 
 
@@ -129,14 +125,15 @@ def text_ocr(img, label, lang, config='-psm 3'):
     red = hist_equal(red)
     red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
     red = img_resize(red, 150)
-    img = Image.fromarray(red.astype('uint8'))
-    # text = pytesseract.image_to_string(img, lang=lang, config=config).replace(" ", "")
-    text = tl.image_to_string(img,lang=lang).replace(" ", "").replace("\n","")
+    red = red.astype('uint8')
+    # print(type(red))
+    # print(red)
+    # img = Image.fromarray(red.astype('uint8'))
+    text = tl.image_to_string(red, label=label, lang=lang).replace(" ", "").replace("\n","")
     ocr_text = dict(label=label, text=text, location={})
     time_used = time.time() - start
-    print("recognize %s timeUsed = %d ms" % (label, int(time_used * 1000)))
+    logger.info("recognize %s timeUsed = %d ms" % (label, int(time_used * 1000)))
     return ocr_text
-
 
 
 
@@ -211,124 +208,6 @@ def img_resize_gray(imgorg):
     return hist_equal(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)), crop
 
 
-def find_name(crop_gray, crop_org):
-    template = name_mask
-    # showimg(crop_org)
-    w, h = template.shape[::-1]
-    res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
-    # 找到矩阵中全局最大值和最小值的位置
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    print(max_loc)
-    top_left = (max_loc[0] + w, max_loc[1] - int(20 * x))
-    bottom_right = (top_left[0] + int(700 * x), top_left[1] + int(300 * x))
-    result = crop_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-    # showimg(result)
-    return result
-
-
-def find_sex(crop_gray, crop_org):
-    template = sex_mask
-    # showimg(template)
-    w, h = template.shape[::-1]
-    res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    top_left = (max_loc[0] + w, max_loc[1] - int(20 * x))
-    bottom_right = (top_left[0] + int(300 * x), top_left[1] + int(300 * x))
-    result = crop_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-    # showimg(crop_gray)
-    return result
-
-
-def find_nation(crop_gray, crop_org):
-    template = nation_mask
-    # showimg(template)
-    w, h = template.shape[::-1]
-    res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    top_left = (max_loc[0] + w - int(20 * x), max_loc[1] - int(20 * x))
-    bottom_right = (top_left[0] + int(500 * x), top_left[1] + int(300 * x))
-    result = crop_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-    # showimg(crop_gray)
-    return result
-
-
-def find_birth(crop_gray, crop_org):
-    template = birth_mask
-    w, h = template.shape[::-1]
-    res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    top_left = (max_loc[0] + w, max_loc[1] - int(20 * x))
-    bottom_right = (top_left[0] + int(1500 * x), top_left[1] + int(300 * x))
-    # 提取result需要在rectangle之前
-    date_org = crop_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    date = cv2.cvtColor(date_org, cv2.COLOR_BGR2GRAY)
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-
-    # 提取年份
-    template = iu.get_mask('year_mask_%s.jpg' % pixel_x, 0)
-    year_res = cv2.matchTemplate(date, template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(year_res)
-    bottom_right = (max_loc[0] + int(20 * x), int(300 * x))
-    top_left = (0, 0)
-    year = date_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-
-    # 提取月
-    template = iu.get_mask('month_mask_%s.jpg' % pixel_x, 0)
-    month_res = cv2.matchTemplate(date, template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(month_res)
-    bottom_right = (max_loc[0] + int(40 * x), int(300 * x))
-    top_left = (max_loc[0] - int(220 * x), 0)
-    month = date_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-
-    # 提取日
-    template = iu.get_mask('day_mask_%s.jpg' % pixel_x, 0)
-    day_res = cv2.matchTemplate(date, template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(day_res)
-    bottom_right = (max_loc[0] + int(20 * x), int(300 * x))
-    top_left = (max_loc[0] - int(220 * x), 0)
-    day = date_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-
-    if DEBUG:
-        iu.write_middle_result(date, 'date.png')
-        iu.write_middle_result(year, 'year.png')
-        iu.write_middle_result(month, 'month.png')
-        iu.write_middle_result(day, 'day.png')
-    return year, month, day
-
-
-def find_address(crop_gray, crop_org):
-    template = address_mask
-    w, h = template.shape[::-1]
-    # t1 = round(time.time()*1000)
-    res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
-    # t2 = round(time.time()*1000)
-    # print 'time:%s'%(t2-t1)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    top_left = (max_loc[0] + w, max_loc[1] - int(20 * x))
-    bottom_right = (top_left[0] + int(1700 * x), top_left[1] + int(550 * x))
-    result = crop_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-    return result
-
-
-def find_idnum(crop_gray, crop_org):
-    template = idnum_mask
-    w, h = template.shape[::-1]
-    res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    top_left = (max_loc[0] + w, max_loc[1] - int(20 * x))
-    bottom_right = (top_left[0] + int(2300 * x), top_left[1] + int(300 * x))
-    result = crop_org[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-    return result
-
 
 def showimg(img):
     cv2.namedWindow("contours", 0)
@@ -354,114 +233,6 @@ def showimg(img):
 #  13    Raw line. Treat the image as a single text line,
 # 			bypassing hacks that are Tesseract-specific
 
-def get_name(img):
-    #    cv2.imshow("method3", img)
-    #    cv2.waitKey()
-    _, _, red = cv2.split(img)  # split 会自动将UMat转换回Mat
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 151, 50)
-    #    red = cv2.medianBlur(red, 3)
-    red = img_resize(red, 150)
-    # iu.write_middle_result(red, 'name.png')
-    #    img2 = Image.open('address.png')
-    img = Image.fromarray(red.astype('uint8'))
-    name = punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 13').replace(" ", ""))
-    ocr_text = dict(label="name", text=name, location={})
-    return ocr_text
-
-
-def get_sex(img):
-    _, _, red = cv2.split(img)
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    #    red = cv2.medianBlur(red, 3)
-    #    iu.write_middle_result(img,'address.png')
-    #    img2 = Image.open('address.png')
-    red = img_resize(red, 150)
-    # iu.write_middle_result(red,'sex.png')
-    img = Image.fromarray(red.astype('uint8'))
-    # return pytesseract.image_to_string(img, lang='sex', config='interactive -c tessedit_char_whitelist=男女 -psm 8')
-    sex = pytesseract.image_to_string(img, lang='sex', config='-psm 10').replace(" ", "")
-    ocr_text = dict(label="sex", text=sex, location={})
-    return ocr_text
-
-
-def get_nation(img):
-    _, _, red = cv2.split(img)
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    red = img_resize(red, 150)
-    # iu.write_middle_result(red,'nation.png')
-    img = Image.fromarray(red.astype('uint8'))
-    nation = pytesseract.image_to_string(img, lang='nation', config='-psm 13').replace(" ", "")
-    ocr_text = dict(label="nation", text=nation, location={})
-    return ocr_text
-
-
-def get_birth(year, month, day):
-    _, _, red = cv2.split(year)
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    red = img_resize(red, 150)
-    iu.write_middle_result(red, 'year_red.png')
-    year_red = Image.fromarray(red.astype('uint8'))
-
-    _, _, red = cv2.split(month)
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    # red = cv2.erode(red,kernel,iterations = 1)
-    red = img_resize(red, 150)
-    iu.write_middle_result(red, 'month_red.png')
-    month_red = Image.fromarray(red.astype('uint8'))
-
-    _, _, red = cv2.split(day)
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    red = img_resize(red, 150)
-    iu.write_middle_result(red, 'day_red.png')
-    day_red = Image.fromarray(red.astype('uint8'))
-    # return pytesseract.image_to_string(img, lang='birth', config='-psm 7')
-
-    year = pytesseract.image_to_string(year_red, lang='idnum',
-                                       config='-c tessedit_char_whitelist=0123456789 -psm 13').replace(" ", "")
-    month = pytesseract.image_to_string(month_red, lang='idnum',
-                                        config='-c tessedit_char_whitelist=0123456789 -psm 13').replace(" ", "")
-    while len(month) < 2:
-        month = "0" + month
-    day = pytesseract.image_to_string(day_red, lang='idnum',
-                                      config='-c tessedit_char_whitelist=0123456789 -psm 13').replace(" ", "")
-    while len(day) < 2:
-        month = "0" + day
-    birth = year + month + day
-    return dict(label="birth", text=birth, location={})
-
-
-def get_address(img):
-    # _, _, red = cv2.split(img)
-    # red = cv2.medianBlur(red, 3)
-    _, _, red = cv2.split(img)
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    red = img_resize(red, 300)
-    # iu.write_middle_result(red,'address_red.png')
-    img = Image.fromarray(red.astype('uint8'))
-    address = punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 3').replace(" ", ""))
-    ocr_text = dict(label="address", text=address, location={})
-    return ocr_text
-
-
-def get_idnum(img):
-    #    cv2.imshow("method3", img)
-    #    cv2.waitKey()
-    _, _, red = cv2.split(img)
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    red = img_resize(red, 150)
-    # iu.write_middle_result('idnum_red.png', red)
-    img = Image.fromarray(red.astype('uint8'))
-    idnum = pytesseract.image_to_string(img, lang='idnum', config='-psm 7').replace(" ", "")
-    ocr_text = dict(label="idnum", text=idnum, location={})
-    return ocr_text
 
 
 def punc_filter(str):

@@ -14,10 +14,12 @@ from django_web import idcardocr
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.utils.datastructures import MultiValueDictKeyError
+from django_web.model import *
 
 RESOURCE_PATH = os.path.join(BASE_DIR, "django_web/resource")
 RESULT_PATH = "ocr_result"
 logger = logging.getLogger('django_logger')
+
 
 @csrf_exempt
 def idcard_ocr(request):
@@ -42,12 +44,14 @@ def idcard_ocr(request):
             detect_direction = False
         time_used = time.time() - start
         start += time_used
-        print("prehandle timeUsed = %d ms" % (int(time_used * 1000)))
+        logger.info("prehandle timeUsed = %d ms" % (int(time_used * 1000)))
 
         try:
             card_file = request.FILES['image']
             image = Image.open(card_file)
-            img_mat = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
+            imgArray = np.asarray(image)
+            logger.info("get a image shape = %s" % str(imgArray.shape))
+            img_mat = cv2.cvtColor(imgArray, cv2.COLOR_RGB2BGR)
             time_used = time.time() - start
             start += time_used
             print("file load timeUsed = %d ms" % (int(time_used * 1000)))
@@ -59,10 +63,10 @@ def idcard_ocr(request):
 
             result_dict = idcardocr.idcardocr(img_full)
             time_used = time.time() - ori_time
-            print("total procession timeUsed = %d ms"%(int(time_used*1000)))
+            print("total procession timeUsed = %d ms" % (int(time_used * 1000)))
             response_data = dict(code=0, message="ok", result=result_dict)
-        except (MultiValueDictKeyError, OSError) as error:
-            logger.error("图片参数错误"+traceback.format_exc())
+        except (MultiValueDictKeyError, OSError, ServiceException) as error:
+            logger.error("图片参数错误" + traceback.format_exc())
             response_data["message"] = "图片参数错误"
     else:
         response_data["message"] = "请求服务方式错误"
