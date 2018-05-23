@@ -5,6 +5,7 @@ import numpy as np
 import re
 import time
 from django_web.util import img_util as iu
+from django_web.util import result_checker as rc
 from django_web.tess_ocr import tess_link as tl
 import logging
 logger = logging.getLogger('django_logger')
@@ -24,15 +25,16 @@ idnum_mask = iu.get_mask('idnum_mask_%s.jpg' % pixel_x, 0)
 
 target_list = list()
 target_list.append(dict(label="name", template=name_mask, shape=(300, 700), lang='chi_sim', config='-psm 3'))
-# region_list.append(dict(label="sex",template=sex_mask, shape=(300, 300), lang='sex', config='-psm 10'))
+# target_list.append(dict(label="sex",template=sex_mask, shape=(300, 300), lang='sex', config='-psm 10'))
 target_list.append(dict(label="nation", template=nation_mask, shape=(300, 500), lang='nation', config='-psm 7'))
-# region_list.append(dict(label="birth",template=birth_mask, shape=(300, 1500), lang='', config='-psm 3'))
+# target_list.append(dict(label="birth",template=birth_mask, shape=(300, 1500), lang='', config='-psm 3'))
 target_list.append(dict(label="address", template=address_mask, shape=(500, 1700), lang='chi_sim', config='-psm 3'))
 target_list.append(dict(label="idnum", template=idnum_mask, shape=(300, 2300), lang='idnum', config='-psm 7'))
 
 
-def idcardocr(img):
-    # generate_mask(x)
+def idcardocr(img,scale = 1):
+    # flag indicate whether ocr result is correct
+    error_count = 0
     img_data_gray, img_org = img_resize_gray(img)
     # TODO 判断身份证的朝向和风险情况
     result_dict = dict(direction=0, riskType=0)
@@ -42,34 +44,15 @@ def idcardocr(img):
 
     for target in target_list:
         label = target['label']
-        region = find_region(img_data_gray, img_org, target['template'], target['shape'],label=label)
+        region, location = find_region(img_data_gray, img_org, target['template'], target['shape'], label=label)
         text_dict[label] = text_ocr(region, label, target['lang'], target['config'])
+        text_dict[label]['location'] = location
 
-    # start = time.time()
-    # name_pic = find_name(img_data_gray, img_org)
-    # text_dict['name'] = get_name(name_pic)
-    # time_used = time.time() - start
-    # start += time_used
-    # print("name timeUsed = %d ms" % (int(time_used * 1000)))
-    #
-    # nation_pic = find_nation(img_data_gray, img_org)
-    # text_dict['nation'] = get_nation(nation_pic)
-    # time_used = time.time() - start
-    # start += time_used
-    # print("nation timeUsed = %d ms" % (int(time_used * 1000)))
-    #
-    # address_pic = find_address(img_data_gray, img_org)
-    # text_dict['address'] = get_address(address_pic)
-    # time_used = time.time() - start
-    # start += time_used
-    # print("address timeUsed = %d ms" % (int(time_used * 1000)))
-    #
-    # idnum_pic = find_idnum(img_data_gray, img_org)
-    # text_dict['idnum'] = get_idnum(idnum_pic)
-
-    idnum = text_dict['idnum']["text"]
-    # TODO idcard_util 检测身份证号的有效性
-    if len(idnum) == 18:
+    error_count += 1 if rc.check_name(text_dict['name']['text']) else 0
+    error_count += 1 if rc.check_chi_sim(text_dict['nation']['text']) else 0
+    error_count += 1 if rc.check_chi_sim(text_dict['address']['text']) else 0
+    idnum = text_dict['idnum']['text']
+    if rc.check_idcard(idnum):
         birth = idnum[6:14]
         text_dict['birth'] = dict(label="birth", text=birth, location={})
         sex_num = int(idnum[16])
@@ -78,31 +61,25 @@ def idcardocr(img):
         else:
             sex = "男"
         text_dict['sex'] = dict(label="sex", text=sex, location={})
-
     else:
-        pass
-        # year_pic, month_pic, day_pic = find_birth(img_data_gray, img_org)
-        # text_dict['birth'] = get_birth(year_pic, month_pic, day_pic)
-        #
-        # sex_pic = find_sex(img_data_gray, img_org)
-        # # showimg(sex_pic)
-        # # print 'sex'
-        # text_dict['sex'] = get_sex(sex_pic)
-        # # print result_dict['sex']
+        error_count += 1
 
     result_dict['textCount'] = len(text_dict)
+    result_dict['errorCount'] = error_count
     return result_dict
 
 
 
-def find_region(img_gray, img_rgb, template, shape, label=''):
+def find_region(img_gray, img_rgb, template, shape, label='', scale = 1):
     """
     查找图片中和标题模板相对应的位置，并提取模板右方的文字区域
     :param img_gray: 灰度图片，用于模板匹配
     :param img_rgb:  彩色图片，实际的剪切操作
     :param template: 模板图片
     :param shape:    文字区域的尺寸 turple（h,w）
-    :return:
+    :param scale:    识别图片相比较于原图缩放的比例
+    :return: result: region img
+              location:()
     """
     start = time.time()
     h, w = template.shape
@@ -116,7 +93,8 @@ def find_region(img_gray, img_rgb, template, shape, label=''):
     # showimg(result)
     time_used = time.time() - start
     logger.info("find %s timeUsed = %d ms" % (label,int(time_used * 1000)))
-    return result
+    location = dict()
+    return result, location
 
 
 def text_ocr(img, label, lang, config='-psm 3'):

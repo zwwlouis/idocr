@@ -12,6 +12,7 @@ MASK = os.path.join(BASE_DIR, "django_web/resource", "mask")
 
 template = os.path.join(MASK, 'idcard_mask.jpg')
 img_template = cv2.imread(template, 0)  # queryImage in Gray
+
 XFEATURE_IMG_WIDTH = 400
 img_template_small = iu.img_resize(img_template, XFEATURE_IMG_WIDTH)
 MIN_MATCH_COUNT = 10
@@ -37,7 +38,6 @@ class LocateCard:
         img_target_gray = cv2.cvtColor(img_target, cv2.COLOR_BGR2GRAY)  # trainImage in Gray
         img_target_gray_small = iu.img_resize(img_target_gray, XFEATURE_IMG_WIDTH)
 
-        img_target = iu.img_resize(img_target, 1920)
         img_target_gray = cv2.cvtColor(img_target, cv2.COLOR_BGR2GRAY)
 
         pts, dst = self.findMatchWithXFeature(img_target_gray_small, img_template_small)

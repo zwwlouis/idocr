@@ -49,9 +49,7 @@ def img_resize(img, dwidth):
     :param dwidth:
     :return:
     """
-    if isinstance(img, cv2.UMat):
-        size = img.get().shape
-    elif isinstance(img, ndarray):
+    if isinstance(img, ndarray):
         size = img.shape
     elif isinstance(img, list):
         imgArray = array(img)
@@ -62,9 +60,10 @@ def img_resize(img, dwidth):
         return None
     height = size[0]
     width = size[1]
-    dheight = int(height * dwidth / width)
+    scale = dwidth / width
+    dheight = int(height * scale)
     nImg = cv2.resize(img, dsize=(dwidth, dheight), interpolation=cv2.INTER_CUBIC)
-    return nImg
+    return nImg, scale
 
 
 if __name__ == '__main__':

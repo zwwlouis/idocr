@@ -52,18 +52,19 @@ def idcard_ocr(request):
             imgArray = np.asarray(image)
             logger.info("get a image shape = %s" % str(imgArray.shape))
             img_mat = cv2.cvtColor(imgArray, cv2.COLOR_RGB2BGR)
+            img_mat, scale = iu.img_resize(img_mat, 1920)
             time_used = time.time() - start
             start += time_used
-            print("file load timeUsed = %d ms" % (int(time_used * 1000)))
+            logger.info("file load timeUsed = %d ms" % (int(time_used * 1000)))
 
             img_full, _ = locate_card.locate(img_mat)
             time_used = time.time() - start
             start += time_used
-            print("card location timeUsed = %d ms" % (int(time_used * 1000)))
+            logger.info("card location timeUsed = %d ms" % (int(time_used * 1000)))
 
             result_dict = idcardocr.idcardocr(img_full)
             time_used = time.time() - ori_time
-            print("total procession timeUsed = %d ms" % (int(time_used * 1000)))
+            logger.info("total procession timeUsed = %d ms" % (int(time_used * 1000)))
             response_data = dict(code=0, message="ok", result=result_dict)
         except (MultiValueDictKeyError, OSError, ServiceException) as error:
             logger.error("图片参数错误" + traceback.format_exc())
