@@ -8,6 +8,7 @@ from django_web.util import img_util as iu
 from django_web.util import result_checker as rc
 from django_web.tess_ocr import tess_link as tl
 import logging
+
 logger = logging.getLogger('django_logger')
 x = 1280.00 / 3840.00
 pixel_x = int(x * 3840)
@@ -32,7 +33,7 @@ target_list.append(dict(label="address", template=address_mask, shape=(500, 1700
 target_list.append(dict(label="idnum", template=idnum_mask, shape=(300, 2300), lang='idnum', config='-psm 7'))
 
 
-def idcardocr(img,scale = 1):
+def idcardocr(img, scale=1):
     # flag indicate whether ocr result is correct
     error_count = 0
     img_data_gray, img_org = img_resize_gray(img)
@@ -48,10 +49,11 @@ def idcardocr(img,scale = 1):
         text_dict[label] = text_ocr(region, label, target['lang'], target['config'])
         text_dict[label]['location'] = location
 
-    error_count += 1 if rc.check_name(text_dict['name']['text']) else 0
-    error_count += 1 if rc.check_chi_sim(text_dict['nation']['text']) else 0
-    error_count += 1 if rc.check_chi_sim(text_dict['address']['text']) else 0
-    idnum = text_dict['idnum']['text']
+    error_count += 0 if rc.check_name(text_dict['name']['text']) else 1
+    error_count += 0 if rc.check_chi_sim(text_dict['nation']['text']) else 1
+    error_count += 0 if rc.check_chi_sim(text_dict['address']['text']) else 1
+    idnum = rc.card_number_filter(text_dict['idnum']['text'])
+    text_dict['idnum']['text'] = idnum
     if rc.check_idcard(idnum):
         birth = idnum[6:14]
         text_dict['birth'] = dict(label="birth", text=birth, location={})
@@ -69,8 +71,7 @@ def idcardocr(img,scale = 1):
     return result_dict
 
 
-
-def find_region(img_gray, img_rgb, template, shape, label='', scale = 1):
+def find_region(img_gray, img_rgb, template, shape, label='', scale=1):
     """
     查找图片中和标题模板相对应的位置，并提取模板右方的文字区域
     :param img_gray: 灰度图片，用于模板匹配
@@ -92,14 +93,17 @@ def find_region(img_gray, img_rgb, template, shape, label='', scale = 1):
     cv2.rectangle(img_gray, top_left, bottom_right, 255, 2)
     # showimg(result)
     time_used = time.time() - start
-    logger.info("find %s timeUsed = %d ms" % (label,int(time_used * 1000)))
+    logger.info("find %s timeUsed = %d ms" % (label, int(time_used * 1000)))
     location = dict()
     return result, location
 
 
 def text_ocr(img, label, lang, config='-psm 3'):
+    logger.info("start text_ocr 11111")
     start = time.time()
+    logger.info("img shape=%s" % str(img.shape))
     _, _, red = cv2.split(img)
+    logger.info("red after split shape=%s" % str(red.shape))
     red = hist_equal(red)
     red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
     red = img_resize(red, 150)
@@ -107,17 +111,12 @@ def text_ocr(img, label, lang, config='-psm 3'):
     # print(type(red))
     # print(red)
     # img = Image.fromarray(red.astype('uint8'))
-    text = tl.image_to_string(red, label=label, lang=lang).replace(" ", "").replace("\n","")
+    # iu.showimg(red)
+    text = tl.image_to_string(red, label=label, lang=lang).replace(" ", "").replace("\n", "")
     ocr_text = dict(label=label, text=text, location={})
     time_used = time.time() - start
     logger.info("recognize %s timeUsed = %d ms" % (label, int(time_used * 1000)))
     return ocr_text
-
-
-
-
-
-
 
 
 def generate_mask(x):
@@ -186,12 +185,6 @@ def img_resize_gray(imgorg):
     return hist_equal(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)), crop
 
 
-
-def showimg(img):
-    cv2.namedWindow("contours", 0)
-    cv2.resizeWindow("contours", 1280, 720)
-    cv2.imshow("contours", img)
-    cv2.waitKey()
 
 
 # psm model:

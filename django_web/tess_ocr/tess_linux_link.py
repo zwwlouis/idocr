@@ -19,7 +19,7 @@ RESOURCE = os.path.join(BASE_DIR, "django_web", "resource")
 TESSDATA_PATH = os.path.join(RESOURCE, "local", "share", "tessdata")
 LIBTESS_SO_PATH = os.path.join(RESOURCE, "local","lib","libtesseract.so.4")
 file_path = os.path.join(RESOURCE, "card_locate", "8.jpg")
-# logger = logging.getLogger('django_logger')
+logger = logging.getLogger('django_logger')
 
 
 class TessLinuxLink(object):

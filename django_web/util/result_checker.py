@@ -1,10 +1,17 @@
 import re
-
+id_num_reg = r'[X0-9]+'
 idcard_reg = r'^[1-9]\d{5}(18|19|([23]\d))\d{2}((0[1-9])|(10|11|12))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$'
 name_reg = r'^[\u4e00-\u9fa5]{2,6}$'
 
 sex_reg = r'^(\u7537|\u5973){1}$'
 chi_sim_reg = r'^[\u4e00-\u9fa5]+$'
+
+
+def card_number_filter(content):
+    """剔除身份证号中所有非法字符"""
+    result = re.findall(id_num_reg, content)
+    result = "".join(result)
+    return result
 
 
 def check_idcard(idnum):

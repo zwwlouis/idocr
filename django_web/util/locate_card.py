@@ -14,7 +14,7 @@ template = os.path.join(MASK, 'idcard_mask.jpg')
 img_template = cv2.imread(template, 0)  # queryImage in Gray
 
 XFEATURE_IMG_WIDTH = 400
-img_template_small = iu.img_resize(img_template, XFEATURE_IMG_WIDTH)
+img_template_small,_ = iu.img_resize(img_template, XFEATURE_IMG_WIDTH)
 MIN_MATCH_COUNT = 10
 
 
@@ -36,7 +36,7 @@ class LocateCard:
         """
         start = time.time()
         img_target_gray = cv2.cvtColor(img_target, cv2.COLOR_BGR2GRAY)  # trainImage in Gray
-        img_target_gray_small = iu.img_resize(img_target_gray, XFEATURE_IMG_WIDTH)
+        img_target_gray_small,_ = iu.img_resize(img_target_gray, XFEATURE_IMG_WIDTH)
 
         img_target_gray = cv2.cvtColor(img_target, cv2.COLOR_BGR2GRAY)
 
@@ -48,11 +48,15 @@ class LocateCard:
         dst = dst * ratio
         # 参数
         img_target_gray = cv2.polylines(img_target_gray, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
-        # self.showimg(img_target_gray)
+        # FIXME
+        iu.showimg(img_target_gray)
+
         # 进行图像矫正（透视变换）
         M_r, mask_r = cv2.findHomography(dst, pts, 0, 5.0)
         im_r = cv2.warpPerspective(img_target, M_r, (int(w_temp*ratio), int(h_temp*ratio)))
-        # self.showimg(im_r)
+
+        # FIXME
+        iu.showimg(im_r)
         time_used = time.time() - start
         start += time_used
         print("match timeUsed = %d ms" % (int(time_used * 1000)))
@@ -62,7 +66,7 @@ class LocateCard:
         #           flags = 2)
         # img3 = cv2.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
         # plt.imshow(img3, 'gray'),plt.show()
-        # im_r图像矫正结果，img2_中间结果
+        # im_r图像矫正结果
         return im_r, img_target_gray
 
     def findMatchWithXFeature(self, target, template):
@@ -85,6 +89,12 @@ class LocateCard:
 
         matches = flann.knnMatch(des1, des2, k=2)
 
+        # FIXME
+        drawImg = None
+        # Sort them in the order of their distance.
+        # matches = sorted(matches, key=lambda x: x.distance)
+        cv2.drawMatches(template,kp1,target,kp2,matches[:10],drawImg)
+        cv2.waitKey(0)
         # store all the good matches as per Lowe's ratio test.
         # 两个最佳匹配之间距离需要大于ratio 0.7,距离过于相似可能是噪声点
         good = []
@@ -104,9 +114,9 @@ class LocateCard:
             dst = cv2.perspectiveTransform(pts, M)
             return pts, dst
         else:
-            print("Not enough matches are found - %d/%d" % (len(good), MIN_MATCH_COUNT))
+            print("身份证匹配度不足 - %d/%d" % (len(good), MIN_MATCH_COUNT))
             matchesMask = None
-            raise ServiceException("Not enough matches are found - %d/%d" % (len(good), MIN_MATCH_COUNT))
+            raise ServiceException("身份证匹配度不足 - %d/%d" % (len(good), MIN_MATCH_COUNT))
 
     def showimg(self, img):
         cv2.namedWindow("contours", 0)

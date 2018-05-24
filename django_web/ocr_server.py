@@ -48,7 +48,7 @@ def idcard_ocr(request):
 
         try:
             card_file = request.FILES['image']
-            image = Image.open(card_file)
+            image = Image.open(card_file, mode="r").convert("RGB")
             imgArray = np.asarray(image)
             logger.info("get a image shape = %s" % str(imgArray.shape))
             img_mat = cv2.cvtColor(imgArray, cv2.COLOR_RGB2BGR)
@@ -66,9 +66,14 @@ def idcard_ocr(request):
             time_used = time.time() - ori_time
             logger.info("total procession timeUsed = %d ms" % (int(time_used * 1000)))
             response_data = dict(code=0, message="ok", result=result_dict)
-        except (MultiValueDictKeyError, OSError, ServiceException) as error:
+        except (MultiValueDictKeyError, OSError) as error:
             logger.error("图片参数错误" + traceback.format_exc())
             response_data["message"] = "图片参数错误"
+        except ServiceException as error:
+            logger.error(str(error))
+            response_data["message"] = str(error)
     else:
         response_data["message"] = "请求服务方式错误"
-    return HttpResponse(json.dumps(response_data), content_type='application/json')
+    ret_str = json.dumps(response_data)
+    logger.info("respond = %s" % response_data)
+    return HttpResponse(ret_str, content_type='application/json')

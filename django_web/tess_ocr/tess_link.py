@@ -18,6 +18,9 @@ lib_tesseract = None
 
 logger.info("start tess link init")
 if sys.platform == "win32":
+    from django_web.tess_ocr import tess_win32_link
+    logger.info("win32 env")
+    lib_tesseract = tess_win32_link
     # libname = libpath_w + "libtesseract302.dll"
     # libname_alt = "libtesseract302.dll"
     # os.environ["PATH"] += os.pathsep + libpath_w
@@ -42,6 +45,7 @@ def image_to_string(img, label,lang):
     if lib_tesseract is None:
         return ""
     return lib_tesseract.image_to_string(img, label)
+    # return ""
     # return test_so.recognize(img)
 
 

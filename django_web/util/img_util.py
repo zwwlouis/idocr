@@ -44,7 +44,6 @@ def write_middle_result(img, file_name, folder="result"):
 
 def img_resize(img, dwidth):
     """
-    兼容UMat
     :param img:
     :param dwidth:
     :return:
@@ -64,6 +63,20 @@ def img_resize(img, dwidth):
     dheight = int(height * scale)
     nImg = cv2.resize(img, dsize=(dwidth, dheight), interpolation=cv2.INTER_CUBIC)
     return nImg, scale
+
+max_win_width = 1000
+def showimg(img):
+    size = img.shape
+    # print size
+    height = size[0]
+    width = size[1]
+    if width > max_win_width:
+        height = int(height/width*max_win_width)
+        width = max_win_width
+    cv2.namedWindow("contours", 0)
+    cv2.resizeWindow("contours", width, height)
+    cv2.imshow("contours", img)
+    cv2.waitKey()
 
 
 if __name__ == '__main__':
