@@ -2,10 +2,10 @@ import os
 import cv2
 from idcard_ocr.settings import BASE_DIR
 from numpy import ndarray, array
-
+import sys
 RESOURCE = os.path.join(BASE_DIR, "django_web/resource")
 TEMP = os.path.join(BASE_DIR, "django_web/temp")
-
+SHOW_IMG = sys.platform == "win32"
 
 def get_imgs_from_path(file_dir):
     if not os.path.exists(file_dir):
@@ -66,6 +66,9 @@ def img_resize(img, dwidth):
 
 max_win_width = 1000
 def showimg(img):
+    # 非windows环境不画图
+    if not SHOW_IMG:
+        return
     size = img.shape
     # print size
     height = size[0]

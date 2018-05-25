@@ -51,7 +51,7 @@ def idcardocr(img, scale=1):
 
     error_count += 0 if rc.check_name(text_dict['name']['text']) else 1
     error_count += 0 if rc.check_chi_sim(text_dict['nation']['text']) else 1
-    error_count += 0 if rc.check_chi_sim(text_dict['address']['text']) else 1
+    error_count += 0 if rc.check_address(text_dict['address']['text']) else 1
     idnum = rc.card_number_filter(text_dict['idnum']['text'])
     text_dict['idnum']['text'] = idnum
     if rc.check_idcard(idnum):
@@ -99,24 +99,28 @@ def find_region(img_gray, img_rgb, template, shape, label='', scale=1):
 
 
 def text_ocr(img, label, lang, config='-psm 3'):
-    logger.info("start text_ocr 11111")
-    start = time.time()
-    logger.info("img shape=%s" % str(img.shape))
-    _, _, red = cv2.split(img)
-    logger.info("red after split shape=%s" % str(red.shape))
-    red = hist_equal(red)
-    red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-    red = img_resize(red, 150)
-    red = red.astype('uint8')
-    # print(type(red))
-    # print(red)
-    # img = Image.fromarray(red.astype('uint8'))
-    # iu.showimg(red)
-    text = tl.image_to_string(red, label=label, lang=lang).replace(" ", "").replace("\n", "")
-    ocr_text = dict(label=label, text=text, location={})
-    time_used = time.time() - start
-    logger.info("recognize %s timeUsed = %d ms" % (label, int(time_used * 1000)))
-    return ocr_text
+    try:
+        logger.info("start text_ocr 11111")
+        start = time.time()
+        logger.info("img shape=%s" % str(img.shape))
+        _, _, red = cv2.split(img)
+        logger.info("red after split shape=%s" % str(red.shape))
+        red = hist_equal(red)
+        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
+        red = img_resize(red, 150)
+        red = red.astype('uint8')
+        # print(type(red))
+        # print(red)
+        # img = Image.fromarray(red.astype('uint8'))
+        # iu.showimg(red)
+        text = tl.image_to_string(red, label=label, lang=lang).replace(" ", "").replace("\n", "")
+        ocr_text = dict(label=label, text=text, location={})
+        time_used = time.time() - start
+        logger.info("recognize %s timeUsed = %d ms" % (label, int(time_used * 1000)))
+        return ocr_text
+    except ValueError as error:
+        logger.error("text ocr failed reason = %s"%str(error))
+        return dict(label=label, text="", location={})
 
 
 def generate_mask(x):
@@ -254,6 +258,8 @@ def hist_equal(img):
         if i < minBinNo:
             lut[i] = 0
         elif i > maxBinNo:
+            lut[i] = 255
+        elif maxBinNo == minBinNo:
             lut[i] = 255
         else:
             lut[i] = int(255.0 * (i - minBinNo) / (maxBinNo - minBinNo) + 0.5)

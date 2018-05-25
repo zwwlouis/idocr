@@ -31,7 +31,7 @@ else:
     logger.info("linux env")
     # libname = libpath + "libtesseract.so.3.0.2"
     # libname_alt = "libtesseract.so.3"
-    lib_tesseract = tess_linux_link.tess_linux_link
+    lib_tesseract = tess_linux_link.tess_pool
 
 if lib_tesseract is not None:
     for key in LANG_PAC:

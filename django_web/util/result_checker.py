@@ -5,7 +5,7 @@ name_reg = r'^[\u4e00-\u9fa5]{2,6}$'
 
 sex_reg = r'^(\u7537|\u5973){1}$'
 chi_sim_reg = r'^[\u4e00-\u9fa5]+$'
-
+address_reg = r'^[\u4e00-\u9fa5\da-zA-Z\(\)]+$'
 
 def card_number_filter(content):
     """剔除身份证号中所有非法字符"""
@@ -58,6 +58,20 @@ def check_sex(sex):
     return match is not None
 
 
+def check_address(address):
+    """
+    check address through regular expression
+    :param address:
+    :return:
+    """
+    if address is None:
+        return False
+    if not isinstance(address, str):
+        return False
+    match = re.match(address_reg, address)
+    return match is not None
+
+
 def check_chi_sim(chi_str):
     """
     check chinese sentence by regular expression
@@ -87,5 +101,7 @@ if __name__ == '__main__':
     # name = "张三丰__"
     # print(check_name(name))
 
-    sex = "女"
-    print(check_sex(sex))
+    # sex = "女"
+    # print(check_sex(sex))
+    address = "重庆市丰都县名山镇白沙沱村3组"
+    print(check_address(address))

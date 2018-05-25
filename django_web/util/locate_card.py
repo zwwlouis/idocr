@@ -13,10 +13,12 @@ MASK = os.path.join(BASE_DIR, "django_web/resource", "mask")
 template = os.path.join(MASK, 'idcard_mask.jpg')
 img_template = cv2.imread(template, 0)  # queryImage in Gray
 
+
+
+
 XFEATURE_IMG_WIDTH = 400
 img_template_small,_ = iu.img_resize(img_template, XFEATURE_IMG_WIDTH)
 MIN_MATCH_COUNT = 10
-
 
 class LocateCard:
     def __init__(self):
@@ -89,12 +91,6 @@ class LocateCard:
 
         matches = flann.knnMatch(des1, des2, k=2)
 
-        # FIXME
-        drawImg = None
-        # Sort them in the order of their distance.
-        # matches = sorted(matches, key=lambda x: x.distance)
-        cv2.drawMatches(template,kp1,target,kp2,matches[:10],drawImg)
-        cv2.waitKey(0)
         # store all the good matches as per Lowe's ratio test.
         # 两个最佳匹配之间距离需要大于ratio 0.7,距离过于相似可能是噪声点
         good = []
