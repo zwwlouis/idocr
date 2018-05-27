@@ -24,7 +24,12 @@ def get_idcard(num,flags = None):
     num = num % len(files)
     file_name = files[num]
     file_path = os.path.join(IMAGE, file_name)
-    return cv2.imread(file_path, flags), file_name
+    img = None
+    if flags is None:
+        img = cv2.imread(file_path)
+    else:
+        img = cv2.imread(file_path,flags)
+    return img, file_name
 
 
 def get_idcard_count():
@@ -143,7 +148,7 @@ def sift_test_with_flann(save = False):
         # Apply ratio test
         good = []
         for m, n in matches:
-            if m.distance < 0.75 * n.distance:
+            if m.distance < 0.70 * n.distance:
                 good.append(m)
 
 
@@ -166,8 +171,9 @@ def sift_test_with_flann(save = False):
             M_r, mask_r = cv2.findHomography(dst, pts, 0, 5.0)
             ratio = 1
             im_r = cv2.warpPerspective(img2, M_r, (int(w*ratio), int(h*ratio)))
+            # FIXME
             # iu.showimg(im_r)
-            save_img("perspective",save_name,im_r)
+            # save_img("perspective",save_name,im_r)
         else:
             print("身份证匹配度不足 - %d/%d" % (len(good), MIN_MATCH_COUNT))
             matchesMask = None
@@ -190,6 +196,9 @@ def test_locate_card(save = False):
         save_name = "result" + img_name
         start = time.time()
         im_r, img_target_gray = locate_card.locate(target_img)
+
+
+
 
 
 if __name__ == '__main__':
